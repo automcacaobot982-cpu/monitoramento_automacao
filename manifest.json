@@ -1,9 +1,10 @@
 {
+  "id": "./",
   "name": "Monitor do Bot · Belt Correias",
   "short_name": "Monitor Bot",
   "description": "Monitor de atividade do computador de automação da Belt Correias.",
   "lang": "pt-BR",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
