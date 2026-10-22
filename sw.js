@@ -3,7 +3,7 @@
    Os DADOS (planilha CSV) nunca são cacheados aqui: vão sempre pela rede,
    para o status não ficar velho. */
 
-const CACHE = 'monitor-bot-v1';
+const CACHE = 'monitor-bot-v2';
 const SHELL = [
   './',
   './index.html',
