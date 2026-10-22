@@ -131,10 +131,17 @@
 
 <!-- ======================= CONFIGURAÇÃO (EDITE AQUI) ======================= -->
 <script>
-  // URL /exec do app da web do Apps Script.
-  const WEB_APP_URL = "COLE_AQUI_A_URL_EXEC_DO_APPS_SCRIPT";
-  // O MESMO segredo do monitoramento.gs.
-  const TOKEN = "TROQUE-ESTE-SEGREDO-123";
+  // URL CSV da planilha PUBLICADA NA WEB (Arquivo -> Compartilhar -> Publicar na web
+  // -> aba "registros" -> formato CSV). Esta leitura NÃO passa por login do Google,
+  // por isso funciona em qualquer navegador/celular.
+  const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR12JlZSF-iOSrTq4PFyt-nyTB545uwg1utze9FDA1Yt1pzZ6vAIvmaBqY_7kNzt7mrI_wDNFr3IRc4/pub?gid=0&single=true&output=csv";
+
+  // Minutos sem registro para considerar INATIVO. Use o MESMO valor do monitoramento.gs.
+  const LIMITE_INATIVO_MIN = 90;
+
+  // Nome exibido do computador monitorado.
+  const MAQUINA = "PC-AUTOMACAO-01";
+
   // A cada quantos segundos a tela de status se atualiza sozinha.
   const REFRESH_SEG = 60;
 </script>
@@ -166,7 +173,7 @@
       <div class="linha"><span class="k">Há quanto tempo</span><span class="v" id="hatempo">—</span></div>
       <div class="linha"><span class="k">Total de registros</span><span class="v" id="total">—</span></div>
 
-      <button class="btn" onclick="carregarStatus()">↻ Atualizar agora</button>
+      <button class="btn" onclick="atualizar()">↻ Atualizar agora</button>
       <div class="atualizado" id="atualizado"></div>
     </div>
     <div id="erroStatus"></div>
@@ -191,21 +198,54 @@
 
 <script>
 const $ = (s)=>document.querySelector(s);
+const TAM_PAGINA = 50;
+let DADOS = [];        // {registro, situacao, date} em ordem da planilha (antigo -> recente)
 let paginaHist = 0, totalPaginas = 1;
 
 function esc(t){ return String(t==null?'':t).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
 
-function url(page){
-  let u = WEB_APP_URL + (WEB_APP_URL.indexOf('?')>=0?'&':'?') + 'token=' + encodeURIComponent(TOKEN);
-  if(page!=null) u += '&page=' + page;
-  return u;
+/* ---------- leitura do CSV publicado ---------- */
+function parseBR(s){
+  const m = String(s).match(/(\d{2})\/(\d{2})\/(\d{4})\D+(\d{1,2}):(\d{2})/);
+  if(m) return new Date(+m[3], +m[2]-1, +m[1], +m[4], +m[5]);
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+function splitCSV(linha){
+  const out=[]; let cur='', dentro=false;
+  for(let i=0;i<linha.length;i++){
+    const c=linha[i];
+    if(c==='"'){ if(dentro && linha[i+1]==='"'){cur+='"';i++;} else dentro=!dentro; }
+    else if(c===',' && !dentro){ out.push(cur); cur=''; }
+    else cur+=c;
+  }
+  out.push(cur);
+  return out;
+}
+function parseCSV(txt){
+  const linhas = txt.replace(/\r/g,'').split('\n').filter(l=>l.trim().length);
+  const out=[];
+  for(const linha of linhas){
+    const cols = splitCSV(linha);
+    const a=(cols[0]||'').trim(), b=(cols[1]||'').trim();
+    if(!a) continue;
+    if(a.toLowerCase()==='registro') continue; // cabeçalho
+    out.push({ registro:a, situacao:b||'Ativo', date:parseBR(a) });
+  }
+  return out;
+}
+async function buscarDados(){
+  const url = CSV_URL + (CSV_URL.indexOf('?')>=0?'&':'?') + '_=' + Date.now(); // evita cache do navegador
+  const r = await fetch(url, {redirect:'follow', cache:'no-store'});
+  const txt = await r.text();
+  if(/^\s*</.test(txt)) throw new Error('a planilha não está publicada como CSV');
+  return parseCSV(txt);
 }
 
-/* ---------- desenho do bot conforme a situação ---------- */
+/* ---------- desenho do bot ---------- */
 function desenharBot(estado){
-  // estado: 'ok' | 'off' | 'wait' — cores da paleta Belt
   const cor = estado==='ok' ? '#1a9455' : (estado==='off' ? '#cf3a2c' : '#8a939a');
-  const face = '#0c353b'; // traços escuros (teal da barra) legíveis sobre o corpo colorido
+  const face = '#0c353b';
   const olhos = estado==='off'
     ? `<line x1="40" y1="54" x2="50" y2="64" stroke="${face}" stroke-width="4" stroke-linecap="round"/>
        <line x1="50" y1="54" x2="40" y2="64" stroke="${face}" stroke-width="4" stroke-linecap="round"/>
@@ -234,91 +274,91 @@ function desenharBot(estado){
     <rect x="66" y="96" width="14" height="10" rx="3" fill="${cor}"/>`;
 }
 
-/* ---------- tela de status ---------- */
-async function carregarStatus(){
+/* ---------- atualizar (busca + redesenha a tela atual) ---------- */
+async function atualizar(){
   $('#atualizado').textContent = 'atualizando…';
   try{
-    const r = await fetch(url(0), {method:'GET', redirect:'follow'});
-    const d = await r.json();
-    if(!d.ok) throw new Error(d.erro||'resposta inválida');
-
-    const s = d.status || {};
-    const estadoOk = !!s.ativo && s.ultimo_registro;
-    desenharBot(estadoOk ? 'ok' : 'off');
-    $('#hero').className = 'hero ' + (estadoOk ? 'ok' : 'off');
-    $('#estado').className = 'estado ' + (estadoOk ? 'ok' : 'off');
-    $('#estado').textContent = estadoOk ? 'ATIVO' : 'INATIVO';
-    $('#maqnome').textContent = d.maquina || '';
-    $('#ultimo').textContent = s.ultimo_registro || 'nenhum registro';
-    $('#hatempo').textContent = (s.minutos_atras==null) ? '—'
-        : (s.minutos_atras<=1 ? 'agora mesmo' : ('há ~' + s.minutos_atras + ' min'));
-    $('#total').textContent = d.total!=null ? d.total : '—';
-    $('#atualizado').textContent = 'atualizado ' + (d.gerado_em||'') +
-        ' · inativo após ' + d.limite_min + ' min sem registro';
+    DADOS = await buscarDados();
     $('#erroStatus').innerHTML = '';
+    if(!$('#telaStatus').classList.contains('hide')) renderStatus();
+    else renderHist();
   }catch(e){
     desenharBot('wait');
     $('#hero').className = 'hero';
     $('#estado').className = 'estado wait';
     $('#estado').textContent = 'Sem conexão';
     $('#atualizado').textContent = '';
-    $('#erroStatus').innerHTML = '<div class="aviso" style="margin-top:12px"><b>Não consegui falar com o vigia.</b><br>'
-      + 'Confira a URL e o token no topo do arquivo. ('+esc(e.message)+')</div>';
+    $('#erroStatus').innerHTML = '<div class="aviso" style="margin-top:12px"><b>Não consegui ler a planilha.</b><br>'
+      + 'Confirme que ela está publicada na web em formato CSV. ('+esc(e.message)+')</div>';
   }
 }
 
-/* ---------- tela de histórico ---------- */
-async function carregarHist(){
-  $('#listaHist').innerHTML = '<div class="vazio">Carregando…</div>';
-  try{
-    const r = await fetch(url(paginaHist), {method:'GET', redirect:'follow'});
-    const d = await r.json();
-    if(!d.ok) throw new Error(d.erro||'resposta inválida');
+function renderStatus(){
+  const ult = DADOS.length ? DADOS[DADOS.length-1] : null;
+  const min = (ult && ult.date) ? Math.round((Date.now()-ult.date)/60000) : null;
+  const ativo = (min!=null) && (min <= LIMITE_INATIVO_MIN);
 
-    paginaHist = d.page; totalPaginas = d.total_paginas || 1;
-    $('#contador').textContent = (d.total!=null ? d.total : 0) + ' registros';
-    const regs = d.registros || [];
-    if(!regs.length){
-      $('#listaHist').innerHTML = '<div class="vazio">Nenhum registro ainda.</div>';
-    }else{
-      $('#listaHist').innerHTML = regs.map(x=>
-        `<div class="reg"><span class="pt"></span>`+
-        `<span class="data">${esc(x.registro)}</span>`+
-        `<span class="sit">${esc(x.situacao||'Ativo')}</span></div>`).join('');
-    }
-    $('#pagInfo').textContent = 'Pág. ' + (paginaHist+1) + ' / ' + totalPaginas;
-    $('#btnAnt').disabled = paginaHist<=0;
-    $('#btnProx').disabled = paginaHist>=totalPaginas-1;
-  }catch(e){
-    $('#listaHist').innerHTML = '<div class="aviso"><b>Falha ao carregar o histórico.</b><br>'+esc(e.message)+'</div>';
+  desenharBot(ativo ? 'ok' : 'off');
+  $('#hero').className = 'hero ' + (ativo ? 'ok' : 'off');
+  $('#estado').className = 'estado ' + (ativo ? 'ok' : 'off');
+  $('#estado').textContent = ativo ? 'ATIVO' : 'INATIVO';
+  $('#maqnome').textContent = MAQUINA;
+  $('#ultimo').textContent = ult ? ult.registro : 'nenhum registro';
+  $('#hatempo').textContent = (min==null) ? '—' : (min<=1 ? 'agora mesmo' : ('há ~'+min+' min'));
+  $('#total').textContent = DADOS.length;
+  const agora = new Date().toLocaleString('pt-BR');
+  $('#atualizado').textContent = 'atualizado ' + agora + ' · inativo após ' + LIMITE_INATIVO_MIN + ' min sem registro';
+}
+
+function renderHist(){
+  const total = DADOS.length;
+  totalPaginas = Math.max(1, Math.ceil(total / TAM_PAGINA));
+  if(paginaHist > totalPaginas-1) paginaHist = totalPaginas-1;
+  if(paginaHist < 0) paginaHist = 0;
+
+  $('#contador').textContent = total + ' registros';
+  const recentes = DADOS.slice().reverse(); // recente -> antigo
+  const ini = paginaHist * TAM_PAGINA;
+  const pagina = recentes.slice(ini, ini + TAM_PAGINA);
+
+  if(!pagina.length){
+    $('#listaHist').innerHTML = '<div class="vazio">Nenhum registro ainda.</div>';
+  }else{
+    $('#listaHist').innerHTML = pagina.map(x=>
+      `<div class="reg"><span class="pt"></span>`+
+      `<span class="data">${esc(x.registro)}</span>`+
+      `<span class="sit">${esc(x.situacao||'Ativo')}</span></div>`).join('');
   }
+  $('#pagInfo').textContent = 'Pág. ' + (paginaHist+1) + ' / ' + totalPaginas;
+  $('#btnAnt').disabled = paginaHist<=0;
+  $('#btnProx').disabled = paginaHist>=totalPaginas-1;
 }
 
 function mudarPagina(delta){
   const nova = paginaHist + delta;
   if(nova<0 || nova>totalPaginas-1) return;
   paginaHist = nova;
-  carregarHist();
+  renderHist();
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
-/* ---------- navegação entre telas ---------- */
+/* ---------- navegação ---------- */
 function irPara(tela){
   const ehStatus = tela==='status';
   $('#telaStatus').classList.toggle('hide', !ehStatus);
   $('#telaHist').classList.toggle('hide', ehStatus);
   $('#tabStatus').classList.toggle('ativo', ehStatus);
   $('#tabHist').classList.toggle('ativo', !ehStatus);
-  if(ehStatus){ carregarStatus(); }
-  else { paginaHist = 0; carregarHist(); }
+  if(ehStatus){ renderStatus(); }
+  else { paginaHist = 0; renderHist(); }
 }
 
 /* ---------- início ---------- */
 desenharBot('wait');
-carregarStatus();
-setInterval(()=>{ if(!$('#telaStatus').classList.contains('hide')) carregarStatus(); }, REFRESH_SEG*1000);
+atualizar();
+setInterval(()=>{ if(!$('#telaStatus').classList.contains('hide')) atualizar(); }, REFRESH_SEG*1000);
 document.addEventListener('visibilitychange', ()=>{
-  if(!document.hidden && !$('#telaStatus').classList.contains('hide')) carregarStatus();
+  if(!document.hidden && !$('#telaStatus').classList.contains('hide')) atualizar();
 });
 </script>
 </body>
