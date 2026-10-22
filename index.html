@@ -13,8 +13,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='11' fill='%230a3a40'/%3E%3Crect x='13' y='16' width='22' height='18' rx='5' fill='%237fd4d0'/%3E%3Ccircle cx='20' cy='25' r='2.6' fill='%230a3a40'/%3E%3Ccircle cx='28' cy='25' r='2.6' fill='%230a3a40'/%3E%3C/svg%3E">
-<link rel="manifest" href='data:application/manifest+json,{"name":"Monitor do Bot","short_name":"Monitor","start_url":".","display":"standalone","background_color":"%23eceff1","theme_color":"%230c353b","icons":[{"src":"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 48 48%27%3E%3Crect width=%2748%27 height=%2748%27 rx=%2711%27 fill=%27%230a3a40%27/%3E%3Crect x=%2713%27 y=%2716%27 width=%2722%27 height=%2718%27 rx=%275%27 fill=%27%237fd4d0%27/%3E%3Ccircle cx=%2720%27 cy=%2725%27 r=%272.6%27 fill=%27%230a3a40%27/%3E%3Ccircle cx=%2728%27 cy=%2725%27 r=%272.6%27 fill=%27%230a3a40%27/%3E%3C/svg%3E","sizes":"192x192","type":"image/svg+xml"}]}'>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="48x48" href="favicon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
   :root{
     --bg:#eceff1;
@@ -360,6 +362,13 @@ setInterval(()=>{ if(!$('#telaStatus').classList.contains('hide')) atualizar(); 
 document.addEventListener('visibilitychange', ()=>{
   if(!document.hidden && !$('#telaStatus').classList.contains('hide')) atualizar();
 });
+
+/* ---------- PWA: registra o service worker (torna o app instalável/offline) ---------- */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
 </script>
 </body>
 </html>
