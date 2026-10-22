@@ -67,6 +67,13 @@
   }
   .nav-btn.ativo{background:#eaf6f5;color:var(--brand-2);border-color:#eaf6f5}
   .nav-btn:active{transform:scale(.97)}
+  .nav-inst{background:var(--green-bg);border-color:var(--green-bg);color:#06281a}
+  .nav-inst:active{transform:scale(.97)}
+  @media (max-width:430px){
+    .tb-title small{display:none}
+    .topbar{gap:8px;padding:0 12px}
+    .nav-btn{padding:7px 9px;font-size:12px}
+  }
 
   main{max-width:640px;margin:0 auto;padding:22px 16px 56px}
 
@@ -160,6 +167,7 @@
   <div class="spacer"></div>
   <button id="tabStatus" class="nav-btn ativo" onclick="irPara('status')">Status</button>
   <button id="tabHist" class="nav-btn" onclick="irPara('hist')">Histórico</button>
+  <button id="btnInstalar" class="nav-btn nav-inst hide" onclick="instalarApp()">⬇ Instalar</button>
 </header>
 
 <main>
@@ -369,6 +377,41 @@ if('serviceWorker' in navigator){
     navigator.serviceWorker.register('./sw.js').catch(()=>{});
   });
 }
+
+/* ---------- botão "Instalar aplicativo" ---------- */
+let deferredPrompt = null;
+const btnInstalar = $('#btnInstalar');
+const iOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+function ehStandalone(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+// Chrome/Android: guarda o evento e mostra o botão quando o app pode ser instalado.
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault();
+  deferredPrompt = e;
+  if(!ehStandalone()) btnInstalar.classList.remove('hide');
+});
+// Depois de instalado, o botão some.
+window.addEventListener('appinstalled', ()=>{
+  deferredPrompt = null;
+  btnInstalar.classList.add('hide');
+});
+async function instalarApp(){
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    try{ await deferredPrompt.userChoice; }catch(_){}
+    deferredPrompt = null;
+    btnInstalar.classList.add('hide');
+    return;
+  }
+  if(iOS){
+    alert('Para instalar no iPhone: toque no botão Compartilhar (quadrado com seta) e escolha "Adicionar à Tela de Início".');
+  }else{
+    alert('Para instalar: abra o menu do navegador (⋮) e toque em "Instalar aplicativo".\n\nSe não aparecer, aguarde alguns segundos na página e recarregue.');
+  }
+}
+// iPhone não dispara o evento automático: mostramos o botão com instruções.
+if(iOS && !ehStandalone()) btnInstalar.classList.remove('hide');
 </script>
 </body>
 </html>
