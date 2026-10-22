@@ -5,12 +5,15 @@
    - Fontes do Google: cache-first (mantem o visual offline).
    - Dados da planilha (docs.google.com): SEMPRE pela rede, nunca cacheado.
    Só mude o numero de versao abaixo se alterar ESTE arquivo (sw.js). */
-const CACHE = 'monitor-bot-v3';
-const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
+const CACHE = 'monitor-bot-v4';
+const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-512-maskable.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())
+    // Promise.allSettled: se um arquivo faltar (404), NÃO derruba o resto do cache.
+    caches.open(CACHE)
+      .then((c) => Promise.allSettled(SHELL.map((u) => c.add(u))))
+      .then(() => self.skipWaiting())
   );
 });
 
