@@ -412,6 +412,24 @@
     border-radius: var(--r);
   }
   .foot{color:var(--ink-3);font-size:12px;text-align:center;margin-top:32px;font-weight: 500;}
+
+  /* ---- TELA ANÁLISE ---- */
+  .an-controls{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+  .seg{display:flex;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:3px;gap:3px}
+  .seg button{flex:1;padding:9px 6px;border-radius:7px;font-size:13px;font-weight:600;background:transparent;color:var(--ink-2);transition:all .15s ease}
+  .seg button.on{background:var(--surface);color:var(--brand-2);box-shadow:var(--shadow-sm)}
+  .seg button:active{transform:scale(.97)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip-m{padding:8px 13px;border-radius:999px;font-size:13px;font-weight:600;background:var(--surface);border:1px solid var(--line-2);color:var(--ink-2);transition:all .15s ease}
+  .chip-m.on{background:var(--brand-tint);border-color:var(--brand);color:var(--brand-2)}
+  .chip-m:active{transform:scale(.96)}
+  .chart-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-md);padding:16px 14px 14px}
+  .chart-svg{width:100%;height:auto;display:block}
+  .legenda{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:12px}
+  .legenda .lg{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2);font-weight:600}
+  .legenda .lg i{width:14px;height:3px;border-radius:2px;display:inline-block}
+  .legenda .lg small{color:var(--ink-3);font-weight:500}
+  .an-hint{font-size:12px;color:var(--ink-3);text-align:center;margin-top:12px;line-height:1.5}
 </style>
 </head>
 <body>
@@ -442,6 +460,7 @@
   <div class="spacer"></div>
   <button id="tabStatus" class="nav-btn ativo" onclick="irPara('status')">Status</button>
   <button id="tabHist" class="nav-btn" onclick="irPara('hist')">Histórico</button>
+  <button id="tabAnalise" class="nav-btn" onclick="irPara('analise')">Análise</button>
   <button id="btnInstalar" class="nav-btn nav-inst hide" onclick="instalarApp()">⬇ Baixar App</button>
 </header>
 
@@ -539,6 +558,30 @@
     </div>
   </section>
 
+  <!-- ======================= TELA: ANÁLISE ======================= -->
+  <section id="telaAnalise" class="hide">
+    <div class="an-controls">
+      <div class="seg" id="segGran">
+        <button data-g="ano">Ano</button>
+        <button data-g="mes">Mês</button>
+        <button class="on" data-g="dia">Dia</button>
+        <button data-g="hora">Hora</button>
+      </div>
+      <div class="chips" id="chipMetricas">
+        <button class="chip-m on" data-m="cpu">CPU</button>
+        <button class="chip-m" data-m="ram">RAM</button>
+        <button class="chip-m" data-m="disco">Disco</button>
+        <button class="chip-m on" data-m="temp">Temperatura</button>
+        <button class="chip-m" data-m="ping">Ping</button>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div id="chartHolder"><div class="vazio">Carregando…</div></div>
+      <div class="legenda" id="legenda"></div>
+    </div>
+    <div class="an-hint">Média dos registros em cada período. Toque nas métricas para somar ou tirar linhas.</div>
+  </section>
+
   <div class="foot">Painel de consulta · O alerta de queda e de temperatura chega por e-mail</div>
 </main>
 
@@ -547,6 +590,17 @@ const $ = (s)=>document.querySelector(s);
 const TAM_PAGINA = 50;
 let DADOS = [];
 let paginaHist = 0, totalPaginas = 1;
+
+/* estado da tela Análise */
+let granAtual = 'dia';
+let metricasSel = new Set(['cpu','temp']);
+const METRICAS = {
+  cpu:   {nome:'CPU',          cor:'#0d5b63', unidade:'%',  campo:'cpu'},
+  ram:   {nome:'RAM',          cor:'#7a5af0', unidade:'%',  campo:'ram'},
+  disco: {nome:'Disco',        cor:'#c77d11', unidade:'%',  campo:'disco'},
+  temp:  {nome:'Temperatura',  cor:'#cf3a2c', unidade:'°C', campo:'temp'},
+  ping:  {nome:'Ping',         cor:'#1a9455', unidade:'ms', campo:'ping'}
+};
 
 function esc(t){ return String(t==null?'':t).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
 
@@ -668,7 +722,8 @@ async function atualizar(){
     DADOS = await buscarDados();
     $('#erroStatus').innerHTML = '';
     if(!$('#telaStatus').classList.contains('hide')) renderStatus();
-    else renderHist();
+    else if(!$('#telaHist').classList.contains('hide')) renderHist();
+    else renderAnalise();
   }catch(e){
     desenharBot('wait');
     $('#hero').className = 'hero';
@@ -754,15 +809,112 @@ function mudarPagina(delta){
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
+/* ---------- ANÁLISE: agregação + gráfico ---------- */
+function chaveBucket(date, gran){
+  const p = n=>String(n).padStart(2,'0');
+  const y=date.getFullYear(), mo=p(date.getMonth()+1), d=p(date.getDate()), h=p(date.getHours());
+  if(gran==='ano') return {key:''+y, label:''+y};
+  if(gran==='mes') return {key:y+'-'+mo, label:mo+'/'+y};
+  if(gran==='dia') return {key:y+'-'+mo+'-'+d, label:d+'/'+mo};
+  return {key:y+'-'+mo+'-'+d+' '+h, label:d+'/'+mo+' '+h+'h'}; // hora
+}
+function fmtEixo(v){
+  const n = Math.abs(v)>=100 ? Math.round(v) : Math.round(v*10)/10;
+  return String(n).replace('.',',');
+}
+
+function renderAnalise(){
+  const sel = Object.keys(METRICAS).filter(m=>metricasSel.has(m));
+  if(!sel.length){
+    $('#chartHolder').innerHTML = '<div class="vazio">Selecione ao menos uma métrica acima.</div>';
+    $('#legenda').innerHTML = '';
+    return;
+  }
+  // agrupa todos os registros (com data) no período escolhido
+  const mapa = new Map(); // key -> {label, s:{metrica:[soma,n]}}
+  for(const r of DADOS){
+    if(!r.date) continue;
+    const {key,label} = chaveBucket(r.date, granAtual);
+    let o = mapa.get(key);
+    if(!o){ o={label, s:{}}; mapa.set(key,o); }
+    for(const m of sel){
+      const v = r[METRICAS[m].campo];
+      if(v==null) continue;
+      if(!o.s[m]) o.s[m]=[0,0];
+      o.s[m][0]+=v; o.s[m][1]++;
+    }
+  }
+  let keys = [...mapa.keys()].sort();
+  // limita aos últimos períodos para o gráfico não ficar poluído
+  const MAXB = granAtual==='hora'?48 : (granAtual==='dia'?60 : (granAtual==='mes'?24 : 12));
+  if(keys.length>MAXB) keys = keys.slice(keys.length-MAXB);
+
+  const labels = keys.map(k=>mapa.get(k).label);
+  const series = sel.map(m=>({
+    nome: METRICAS[m].nome,
+    cor:  METRICAS[m].cor,
+    valores: keys.map(k=>{ const a=mapa.get(k).s[m]; return a ? a[0]/a[1] : null; })
+  }));
+  desenharGrafico(labels, series);
+  $('#legenda').innerHTML = sel.map(m=>
+    `<span class="lg"><i style="background:${METRICAS[m].cor}"></i>${METRICAS[m].nome} <small>(${METRICAS[m].unidade})</small></span>`
+  ).join('');
+}
+
+function desenharGrafico(labels, series){
+  const holder = $('#chartHolder');
+  const temDados = series.some(s=>s.valores.some(v=>v!=null));
+  if(!labels.length || !temDados){
+    holder.innerHTML = '<div class="vazio">Sem dados para esse período ainda.</div>';
+    return;
+  }
+  const W=640, H=300, mL=44, mR=14, mT=14, mB=38;
+  const iw=W-mL-mR, ih=H-mT-mB;
+
+  let vmin=Infinity, vmax=-Infinity;
+  for(const s of series) for(const v of s.valores) if(v!=null){ if(v<vmin)vmin=v; if(v>vmax)vmax=v; }
+  if(vmin===Infinity){ vmin=0; vmax=1; }
+  if(vmin===vmax){ vmax=vmin+1; vmin=Math.max(0,vmin-1); }
+  const padd=(vmax-vmin)*0.1; vmax+=padd; vmin-=padd; if(vmin<0)vmin=0;
+
+  const x = i => mL + (labels.length<=1 ? iw/2 : iw*i/(labels.length-1));
+  const y = v => mT + ih*(1-(v-vmin)/(vmax-vmin));
+
+  let g='';
+  const NY=4;
+  for(let k=0;k<=NY;k++){
+    const val=vmin+(vmax-vmin)*k/NY, yy=y(val);
+    g+=`<line x1="${mL}" y1="${yy.toFixed(1)}" x2="${W-mR}" y2="${yy.toFixed(1)}" stroke="var(--line)" stroke-width="1"/>`;
+    g+=`<text x="${mL-7}" y="${(yy+3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--ink-3)" font-family="var(--num)">${fmtEixo(val)}</text>`;
+  }
+  const step=Math.max(1, Math.ceil(labels.length/6));
+  for(let i=0;i<labels.length;i+=step){
+    g+=`<text x="${x(i).toFixed(1)}" y="${H-mB+16}" text-anchor="middle" font-size="10" fill="var(--ink-3)" font-family="var(--num)">${esc(labels[i])}</text>`;
+  }
+
+  let linhas='';
+  for(const s of series){
+    let d='', caneta=false;
+    s.valores.forEach((v,i)=>{
+      if(v==null){ caneta=false; return; }
+      d += (caneta?'L':'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1) + ' ';
+      caneta=true;
+    });
+    linhas+=`<path d="${d}" fill="none" stroke="${s.cor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+    s.valores.forEach((v,i)=>{ if(v!=null) linhas+=`<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="2.6" fill="${s.cor}"/>`; });
+  }
+  holder.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="chart-svg" preserveAspectRatio="xMidYMid meet" role="img">${g}${linhas}</svg>`;
+}
+
 /* ---------- navegação ---------- */
 function irPara(tela){
-  const ehStatus = tela==='status';
-  $('#telaStatus').classList.toggle('hide', !ehStatus);
-  $('#telaHist').classList.toggle('hide', ehStatus);
-  $('#tabStatus').classList.toggle('ativo', ehStatus);
-  $('#tabHist').classList.toggle('ativo', !ehStatus);
-  if(ehStatus){ renderStatus(); }
-  else { paginaHist = 0; renderHist(); }
+  const telas = { status:'#telaStatus', hist:'#telaHist', analise:'#telaAnalise' };
+  const tabs  = { status:'#tabStatus',  hist:'#tabHist',  analise:'#tabAnalise'  };
+  for(const k in telas) $(telas[k]).classList.toggle('hide', k!==tela);
+  for(const k in tabs)  $(tabs[k]).classList.toggle('ativo', k===tela);
+  if(tela==='status') renderStatus();
+  else if(tela==='hist'){ paginaHist = 0; renderHist(); }
+  else renderAnalise();
 }
 
 /* ---------- início ---------- */
@@ -771,6 +923,23 @@ atualizar();
 setInterval(()=>{ if(!$('#telaStatus').classList.contains('hide')) atualizar(); }, REFRESH_SEG*1000);
 document.addEventListener('visibilitychange', ()=>{
   if(!document.hidden && !$('#telaStatus').classList.contains('hide')) atualizar();
+});
+
+/* ---------- controles da Análise ---------- */
+document.querySelectorAll('#segGran button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    granAtual = b.dataset.g;
+    document.querySelectorAll('#segGran button').forEach(x=>x.classList.toggle('on', x===b));
+    renderAnalise();
+  });
+});
+document.querySelectorAll('#chipMetricas .chip-m').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const m = b.dataset.m;
+    if(metricasSel.has(m)) metricasSel.delete(m); else metricasSel.add(m);
+    b.classList.toggle('on', metricasSel.has(m));
+    renderAnalise();
+  });
 });
 
 /* ---------- PWA ---------- */
