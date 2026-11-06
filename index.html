@@ -430,6 +430,37 @@
   .legenda .lg i{width:14px;height:3px;border-radius:2px;display:inline-block}
   .legenda .lg small{color:var(--ink-3);font-weight:500}
   .an-hint{font-size:12px;color:var(--ink-3);text-align:center;margin-top:12px;line-height:1.5}
+
+  /* ---- NOTIFICAÇÕES ---- */
+  .sep{border:0;border-top:1px solid var(--line);margin:24px 0 18px}
+  .notif-head{display:flex;align-items:center;gap:10px;margin:0 2px 12px}
+  .notif-head h2{margin:0;font-family:var(--num);font-weight:700;font-size:18px;letter-spacing:-0.3px}
+  .notif-head .notif-cont{font-size:12px;font-weight:600;color:var(--brand-2);background:var(--brand-tint);padding:4px 10px;border-radius:12px}
+  .btn-avisos{margin-left:auto;font-size:12px;font-weight:600;color:var(--brand-2);background:var(--surface);
+    border:1px solid var(--line-2);border-radius:999px;padding:6px 12px;transition:all .15s ease}
+  .btn-avisos:hover{background:var(--brand-tint);border-color:var(--brand)}
+  .notif-lista{display:flex;flex-direction:column;gap:8px}
+  .ncard{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--brand);
+    border-radius:var(--r-sm);box-shadow:var(--shadow-sm);padding:12px 14px;transition:box-shadow .15s ease}
+  .ncard:hover{box-shadow:var(--shadow-md)}
+  .ncard-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  .ncard-proc{font-weight:700;font-size:14px;color:var(--ink)}
+  .ncard-data{font-family:var(--num);font-size:11px;color:var(--ink-3);white-space:nowrap}
+  .ncard-msg{font-size:13px;color:var(--ink-2);margin-top:4px;line-height:1.45}
+
+  /* balão de notificação (canto) */
+  .toast-wrap{
+    position:fixed;right:14px;z-index:60;display:flex;flex-direction:column;gap:8px;
+    bottom:calc(14px + env(safe-area-inset-bottom,0px));max-width:min(340px,86vw);
+  }
+  .toast{
+    background:var(--bar);color:#eaf6f5;border-radius:var(--r-sm);box-shadow:var(--shadow-lg);
+    padding:12px 14px;border-left:4px solid var(--green);
+    opacity:0;transform:translateY(10px);transition:all .3s cubic-bezier(0.16,1,0.3,1);
+  }
+  .toast.show{opacity:1;transform:translateY(0)}
+  .toast-t{font-weight:700;font-size:13px}
+  .toast-m{font-size:12px;color:#c9e6e3;margin-top:3px;line-height:1.4}
 </style>
 </head>
 <body>
@@ -437,6 +468,11 @@
 <!-- ======================= CONFIGURAÇÃO ======================= -->
 <script>
   const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR12JlZSF-iOSrTq4PFyt-nyTB545uwg1utze9FDA1Yt1pzZ6vAIvmaBqY_7kNzt7mrI_wDNFr3IRc4/pub?gid=0&single=true&output=csv";
+
+  // Base de NOTIFICAÇÕES (2ª planilha publicada como CSV):
+  //   A = Data de notificação (DD/MM/AAAA HH:MM)  |  B = Processo (título)  |  C = Mensagem
+  const CSV_NOTIF_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQlwVO2EPAYnOxFDRAIs2pAF6QMEjSusL9OIsGCBkKuislL8SD6D9IzvFkLtrIFD4u8CPVP58UdaIdT/pub?gid=0&single=true&output=csv";
+
   const LIMITE_INATIVO_MIN = 90;
 
   // Limiares de alerta (cor dos cartões):
@@ -542,6 +578,14 @@
       <div class="atualizado" id="atualizado"></div>
     </div>
     <div id="erroStatus"></div>
+
+    <hr class="sep">
+    <div class="notif-head">
+      <h2>Notificações</h2>
+      <span class="notif-cont" id="notifCont"></span>
+      <button id="btnAvisos" class="btn-avisos hide" onclick="pedirAvisos()">🔔 Ativar avisos</button>
+    </div>
+    <div id="listaNotif" class="notif-lista"><div class="vazio">Carregando…</div></div>
   </section>
 
   <!-- ======================= TELA: HISTÓRICO ======================= -->
@@ -585,10 +629,13 @@
   <div class="foot">Painel de consulta · O alerta de queda e de temperatura chega por e-mail</div>
 </main>
 
+<div id="toastWrap" class="toast-wrap"></div>
+
 <script>
 const $ = (s)=>document.querySelector(s);
 const TAM_PAGINA = 50;
 let DADOS = [];
+let NOTIFS = [];
 let paginaHist = 0, totalPaginas = 1;
 
 /* estado da tela Análise */
@@ -660,6 +707,29 @@ async function buscarDados(){
   return parseCSV(txt);
 }
 
+/* ---------- leitura da base de NOTIFICAÇÕES ---------- */
+function parseNotifCSV(txt){
+  const linhas = txt.replace(/\r/g,'').split('\n').filter(l=>l.trim().length);
+  const out=[];
+  for(const linha of linhas){
+    const cols = splitCSV(linha);
+    const a=(cols[0]||'').trim();
+    if(!a) continue;
+    if(a.toLowerCase().startsWith('data')) continue; // cabeçalho "Data de notificação"
+    out.push({ data:a, processo:(cols[1]||'').trim(), mensagem:(cols[2]||'').trim(), date:parseBR(a) });
+  }
+  // mais recente primeiro (quem tem data válida); sem data vai para o fim
+  out.sort((x,y)=>(y.date?y.date.getTime():0)-(x.date?x.date.getTime():0));
+  return out;
+}
+async function buscarNotificacoes(){
+  const url = CSV_NOTIF_URL + (CSV_NOTIF_URL.indexOf('?')>=0?'&':'?') + '_=' + Date.now();
+  const r = await fetch(url, {redirect:'follow', cache:'no-store'});
+  const txt = await r.text();
+  if(/^\s*</.test(txt)) throw new Error('base de notificações não publicada como CSV');
+  return parseNotifCSV(txt);
+}
+
 /* ---------- cores por faixa ---------- */
 function nivelPct(v){ return v>=LIMITE_PCT_ALERTA ? 'crit' : (v>=70 ? 'warn' : ''); }
 function nivelTemp(v){ return v>=LIMITE_TEMP_ALERTA ? 'crit' : (v>=LIMITE_TEMP_ALERTA-10 ? 'warn' : ''); }
@@ -721,6 +791,8 @@ async function atualizar(){
   try{
     DADOS = await buscarDados();
     $('#erroStatus').innerHTML = '';
+    // notificações: não quebra o painel se a 2ª planilha falhar
+    try{ NOTIFS = await buscarNotificacoes(); detectarNovas(); renderNotif(); }catch(_){}
     if(!$('#telaStatus').classList.contains('hide')) renderStatus();
     else if(!$('#telaHist').classList.contains('hide')) renderHist();
     else renderAnalise();
@@ -906,6 +978,92 @@ function desenharGrafico(labels, series){
   holder.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="chart-svg" preserveAspectRatio="xMidYMid meet" role="img">${g}${linhas}</svg>`;
 }
 
+/* ---------- NOTIFICAÇÕES: render + avisos ---------- */
+function chaveNotif(n){ return n.data+'|'+n.processo+'|'+n.mensagem; }
+
+function renderNotif(){
+  const lista = $('#listaNotif'), cont = $('#notifCont');
+  if(!NOTIFS.length){
+    lista.innerHTML = '<div class="vazio">Nenhuma notificação ainda.</div>';
+    cont.textContent = '';
+    return;
+  }
+  const top20 = NOTIFS.slice(0, 20);
+  cont.textContent = NOTIFS.length + (NOTIFS.length===1?' registro':' registros');
+  lista.innerHTML = top20.map(n=>
+    `<div class="ncard">`+
+      `<div class="ncard-top">`+
+        `<span class="ncard-proc">${esc(n.processo||'—')}</span>`+
+        `<span class="ncard-data">${esc(n.data)}</span>`+
+      `</div>`+
+      (n.mensagem ? `<div class="ncard-msg">${esc(n.mensagem)}</div>` : '')+
+    `</div>`).join('');
+}
+
+/* detecta registros novos desde a última visita e dispara balão + notificação */
+function detectarNovas(){
+  if(!NOTIFS.length) return;
+  const topo = chaveNotif(NOTIFS[0]);
+  let ultima = null;
+  try{ ultima = localStorage.getItem('notif_ultima'); }catch(_){}
+  if(ultima === null){                         // primeira carga: só marca, não avisa
+    try{ localStorage.setItem('notif_ultima', topo); }catch(_){}
+    return;
+  }
+  if(topo === ultima) return;                  // nada novo
+  const novas = [];
+  for(const n of NOTIFS){ if(chaveNotif(n)===ultima) break; novas.push(n); }
+  try{ localStorage.setItem('notif_ultima', topo); }catch(_){}
+  // avisa das mais antigas para as mais novas (limite de 5 para não floodar)
+  novas.slice(0,5).reverse().forEach(n=>notificar(n));
+}
+
+function notificar(n){
+  mostrarBalao(n.processo, n.mensagem);
+  if(('Notification' in window) && Notification.permission==='granted'){
+    const opc = { body:(n.mensagem||''), icon:'./icon-192.png', badge:'./icon-192.png', tag:chaveNotif(n) };
+    try{
+      if(navigator.serviceWorker && navigator.serviceWorker.ready){
+        navigator.serviceWorker.ready
+          .then(reg=>reg.showNotification(n.processo||'Notificação', opc))
+          .catch(()=>{ try{ new Notification(n.processo||'Notificação', opc); }catch(_){} });
+      }else{
+        new Notification(n.processo||'Notificação', opc);
+      }
+    }catch(_){}
+  }
+}
+
+/* balão no canto da tela */
+function mostrarBalao(titulo, msg){
+  const wrap = $('#toastWrap');
+  if(!wrap) return;
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `<div class="toast-t">${esc(titulo||'Notificação')}</div>`+
+                 (msg ? `<div class="toast-m">${esc(msg)}</div>` : '');
+  wrap.appendChild(el);
+  requestAnimationFrame(()=>el.classList.add('show'));
+  setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>el.remove(), 320); }, 6000);
+}
+
+/* botão "Ativar avisos" (pede permissão de notificação) */
+function atualizarBotaoAvisos(){
+  const b = $('#btnAvisos');
+  if(!b) return;
+  const suporta = ('Notification' in window);
+  b.classList.toggle('hide', !suporta || Notification.permission!=='default');
+}
+function pedirAvisos(){
+  if(!('Notification' in window)) return;
+  try{
+    Notification.requestPermission().then(()=>{
+      atualizarBotaoAvisos();
+      if(Notification.permission==='granted') mostrarBalao('Avisos ativados', 'Você será notificado de novos registros.');
+    });
+  }catch(_){ atualizarBotaoAvisos(); }
+}
+
 /* ---------- navegação ---------- */
 function irPara(tela){
   const telas = { status:'#telaStatus', hist:'#telaHist', analise:'#telaAnalise' };
@@ -919,8 +1077,9 @@ function irPara(tela){
 
 /* ---------- início ---------- */
 desenharBot('wait');
+atualizarBotaoAvisos();
 atualizar();
-setInterval(()=>{ if(!$('#telaStatus').classList.contains('hide')) atualizar(); }, REFRESH_SEG*1000);
+setInterval(atualizar, REFRESH_SEG*1000);
 document.addEventListener('visibilitychange', ()=>{
   if(!document.hidden && !$('#telaStatus').classList.contains('hide')) atualizar();
 });
