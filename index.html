@@ -33,125 +33,400 @@
     --brand-tint:#e2efef;
     --red:#cf3a2c;
     --red-tint:#fbe6e3;
+    --amber:#b26a00;
+    --amber-tint:#fdf0dd;
     --green:#1a9455;
     --green-bg:#22c55e;
     --green-tint:#e2f3ea;
-    --shadow-sm:0 1px 2px rgba(16,25,30,.08);
-    --shadow-md:0 10px 30px rgba(12,42,48,.14);
-    --r:12px; --r-sm:8px;
+    --shadow-sm: 0 2px 4px rgba(12, 42, 48, 0.04), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 12px 32px -8px rgba(12, 42, 48, 0.12), 0 4px 12px -2px rgba(12, 42, 48, 0.06);
+    --shadow-lg: 0 20px 40px -12px rgba(12, 42, 48, 0.18);
+    --r: 16px;
+    --r-sm: 10px;
     --sans:'IBM Plex Sans',system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
     --num:'Space Grotesk','IBM Plex Sans',system-ui,sans-serif;
   }
+
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0;min-height:100vh}
   body{
-    font-family:var(--sans);color:var(--ink);background:var(--bg);
-    -webkit-font-smoothing:antialiased;line-height:1.45;
+    font-family:var(--sans);
+    color:var(--ink);
+    background:var(--bg);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
   }
-  button{font-family:inherit;cursor:pointer}
+  button{font-family:inherit;cursor:pointer;border:none;outline:none}
   .hide{display:none !important}
 
-  /* ---- TOPBAR (igual ao modelo) ---- */
+  /* ---- TOPBAR ---- */
   .topbar{
-    position:sticky;top:0;z-index:40;background:var(--bar);color:#eaf6f5;
-    display:flex;align-items:center;gap:14px;padding:0 18px;height:60px;
+    position:sticky;
+    top:0;
+    z-index:40;
+    background:var(--bar);
+    color:#eaf6f5;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:0 20px;
+    height:64px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.15);
+    backdrop-filter: blur(8px);
   }
-  .tb-brand{display:flex;align-items:center;gap:11px;min-width:0}
-  .tb-brand .mark{width:34px;height:34px;flex:0 0 auto}
-  .tb-title{font-family:var(--num);font-weight:600;font-size:15px;line-height:1.15}
-  .tb-title small{display:block;font-family:var(--sans);font-weight:400;font-size:11px;color:#9ccbc7}
+  .tb-brand{display:flex;align-items:center;gap:12px;min-width:0}
+  .tb-brand .mark{width:36px;height:36px;flex:0 0 auto;filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2))}
+  .tb-title{font-family:var(--num);font-weight:700;font-size:16px;line-height:1.2;letter-spacing:-0.2px}
+  .tb-title small{display:block;font-family:var(--sans);font-weight:400;font-size:11px;color:#9ccbc7;opacity:0.9}
   .spacer{flex:1}
   .nav-btn{
-    background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;
-    padding:8px 13px;border-radius:var(--r-sm);font-size:13px;font-weight:600;
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.15);
+    color:#fff;
+    padding:8px 16px;
+    border-radius:20px;
+    font-size:13px;
+    font-weight:600;
+    transition:all .2s ease;
   }
-  .nav-btn.ativo{background:#eaf6f5;color:var(--brand-2);border-color:#eaf6f5}
-  .nav-btn:active{transform:scale(.97)}
-  .nav-inst{background:var(--green-bg);border-color:var(--green-bg);color:#06281a}
-  .nav-inst:active{transform:scale(.97)}
+  .nav-btn.ativo{
+    background:#eaf6f5;
+    color:var(--brand-2);
+    border-color:#eaf6f5;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .nav-btn:hover:not(.ativo){background:rgba(255,255,255,.18)}
+  .nav-btn:active{transform:scale(.96)}
+  .nav-inst{background:var(--green-bg);border-color:var(--green-bg);color:#06281a;font-weight:700}
+
   @media (max-width:430px){
     .tb-title small{display:none}
-    .topbar{gap:8px;padding:0 12px}
-    .nav-btn{padding:7px 9px;font-size:12px}
+    .topbar{gap:8px;padding:0 14px}
+    .nav-btn{padding:7px 12px;font-size:12px}
   }
 
-  main{max-width:640px;margin:0 auto;padding:22px 16px 56px}
+  main{max-width:600px;margin:0 auto;padding:24px 16px 64px}
 
   /* ---- TELA STATUS ---- */
   .hero{
-    background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
-    box-shadow:var(--shadow-sm);padding:26px 20px;text-align:center;position:relative;overflow:hidden;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--r);
+    box-shadow:var(--shadow-md);
+    padding:32px 24px 24px;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .hero::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--brand)}
+  .hero::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    right:0;
+    height:6px;
+    background:var(--brand);
+    transition: background 0.3s ease;
+  }
   .hero.ok::before{background:var(--green)}
   .hero.off::before{background:var(--red)}
+
+  .selo-wrapper{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
   .selo{
-    display:inline-block;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;
-    color:var(--brand);background:var(--brand-tint);border-radius:999px;padding:5px 12px;margin-bottom:12px;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.6px;
+    text-transform:uppercase;
+    color:var(--brand);
+    background:var(--brand-tint);
+    border-radius:999px;
+    padding:6px 14px;
+    box-shadow: inset 0 0 0 1px rgba(13,91,99,0.15);
   }
-  .bot{width:146px;height:146px;margin:2px auto 12px;display:block}
-  .estado{font-family:var(--num);font-size:30px;font-weight:700;letter-spacing:.5px;margin:0 0 4px}
-  .estado.ok{color:var(--green)} .estado.off{color:var(--red)} .estado.wait{color:var(--ink-3)}
-  .maqnome{font-size:13px;color:var(--ink-2);margin-bottom:16px}
+  .selo-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--brand);
+  }
+  .hero.ok .selo { color: var(--green); background: var(--green-tint); }
+  .hero.ok .selo-dot { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
+  .hero.off .selo { color: var(--red); background: var(--red-tint); }
+  .hero.off .selo-dot { background: var(--red); }
+
+  @keyframes pulse {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  .bot-container {
+    width: 140px;
+    height: 140px;
+    margin: 0 auto 16px;
+    background: var(--surface-2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--line);
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.03);
+  }
+  .bot{width:110px;height:110px;display:block}
+
+  .estado{
+    font-family:var(--num);
+    font-size:32px;
+    font-weight:700;
+    letter-spacing:-0.5px;
+    margin:0 0 2px;
+    line-height: 1.1;
+  }
+  .estado.ok{color:var(--green)}
+  .estado.off{color:var(--red)}
+  .estado.wait{color:var(--ink-3)}
+
+  .maqnome{
+    font-size:13px;
+    font-weight:500;
+    color:var(--ink-2);
+    margin-bottom:24px;
+    display: inline-block;
+    background: var(--surface-2);
+    padding: 3px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+  }
+
+  /* Grid de dados (último registro / tempo / total) */
+  .grid-dados {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
   .linha{
-    display:flex;justify-content:space-between;gap:10px;font-size:14px;
-    padding:12px 2px;border-top:1px solid var(--line);text-align:left;
+    display:flex;
+    justify-content:space-between;
+    align-items: center;
+    gap:10px;
+    font-size:14px;
+    padding:12px 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    text-align:left;
+    transition: background 0.15s ease;
   }
-  .linha .k{color:var(--ink-2)}
-  .linha .v{font-family:var(--num);font-weight:600;text-align:right}
-  .atualizado{font-size:12px;color:var(--ink-3);text-align:center;margin-top:14px}
+  .linha:hover { background: #f0f4f5; }
+  .linha .k{color:var(--ink-2); font-weight: 500;}
+  .linha .v{font-family:var(--num);font-weight:700;color:var(--ink);text-align:right}
+
+  /* ---- CARTÕES DE MÉTRICAS ---- */
+  .metrics-title{
+    font-family:var(--num); font-weight:700; font-size:13px; text-transform:uppercase;
+    letter-spacing:.5px; color:var(--ink-2); margin:4px 2px 10px;
+  }
+  .metrics{
+    display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:20px;
+  }
+  .mcard{
+    background:var(--surface-2); border:1px solid var(--line);
+    border-radius:var(--r-sm); padding:14px 14px 15px;
+  }
+  .mcard.full{grid-column:1 / -1}
+  .mcard .mtop{display:flex; align-items:center; gap:8px; margin-bottom:8px}
+  .mcard .micon{
+    width:26px;height:26px;flex:none;border-radius:7px;display:flex;align-items:center;justify-content:center;
+    background:var(--brand-tint); color:var(--brand);
+  }
+  .mcard .micon svg{width:15px;height:15px}
+  .mcard .mlabel{font-size:12px;font-weight:600;color:var(--ink-2);letter-spacing:.2px}
+  .mcard .mval{font-family:var(--num);font-weight:700;font-size:23px;color:var(--ink);line-height:1}
+  .mcard .mval small{font-size:13px;font-weight:600;color:var(--ink-3);margin-left:2px}
+  .mcard .mval.warn{color:var(--amber)}
+  .mcard .mval.crit{color:var(--red)}
+  .mbar{height:6px;border-radius:999px;background:var(--line);margin-top:11px;overflow:hidden}
+  .mbar>i{display:block;height:100%;width:0;border-radius:999px;background:var(--green);
+          transition:width .4s cubic-bezier(0.16,1,0.3,1), background .3s ease}
+  .mbar>i.warn{background:var(--amber)} .mbar>i.crit{background:var(--red)}
+  /* card do ping (full width): valor e barra lado a lado */
+  .mcard.full .mrow{display:flex;align-items:center;gap:14px}
+  .mcard.full .mbar{flex:1;margin-top:0}
+
+  .atualizado{font-size:12px;color:var(--ink-3);text-align:center;margin-top:16px}
+
   .btn{
-    display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;
-    margin-top:16px;border-radius:var(--r-sm);font-weight:600;font-size:15px;padding:13px 18px;
-    transition:all .15s;border:1px solid var(--line-2);background:var(--surface-2);color:var(--ink);
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    width:100%;
+    border-radius:var(--r-sm);
+    font-weight:600;
+    font-size:15px;
+    padding:14px 20px;
+    transition:all .2s cubic-bezier(0.16, 1, 0.3, 1);
+    border:1px solid var(--line-2);
+    background:var(--surface);
+    color:var(--ink);
+    box-shadow: var(--shadow-sm);
   }
-  .btn:hover{background:var(--brand-tint);border-color:var(--brand)}
-  .btn:active{transform:scale(.99)}
+  .btn:hover{
+    background:var(--brand-tint);
+    border-color:var(--brand);
+    color:var(--brand-2);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+  .btn:active{transform:translateY(0)}
 
   /* ---- TELA HISTÓRICO ---- */
-  .page-head{display:flex;align-items:center;justify-content:space-between;margin:4px 2px 14px}
-  .page-head h1{margin:0;font-family:var(--num);font-weight:600;font-size:19px}
-  .page-head .cont{font-size:12px;color:var(--ink-2)}
-  .reg{
-    display:flex;align-items:center;gap:12px;position:relative;
-    background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);
-    box-shadow:var(--shadow-sm);padding:12px 14px 12px 16px;margin-bottom:8px;font-size:14px;overflow:hidden;
+  .page-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin:0 4px 16px;
   }
-  .reg::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--green)}
-  .reg .pt{width:9px;height:9px;border-radius:50%;background:var(--green);flex:none}
-  .reg .data{font-family:var(--num);font-weight:600;font-variant-numeric:tabular-nums}
-  .reg .sit{margin-left:auto;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;
-            color:var(--green);background:var(--green-tint);border-radius:999px;padding:4px 10px}
-  .pager{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px}
-  .pager button{
-    flex:1;background:var(--surface);border:1px solid var(--line-2);color:var(--ink);
-    border-radius:var(--r-sm);padding:12px;font-size:14px;font-weight:600;box-shadow:var(--shadow-sm);
+  .page-head h1{margin:0;font-family:var(--num);font-weight:700;font-size:20px;letter-spacing:-0.3px}
+  .page-head .cont{
+    font-size:12px;
+    font-weight: 600;
+    color:var(--brand-2);
+    background: var(--brand-tint);
+    padding: 4px 10px;
+    border-radius: 12px;
   }
-  .pager button:disabled{opacity:.4;box-shadow:none}
-  .pager .info{font-size:12px;color:var(--ink-2);white-space:nowrap;font-family:var(--num)}
 
-  .aviso{background:var(--red-tint);border:1px solid #f3c7c1;color:#8f2318;
-         border-radius:var(--r-sm);padding:16px;font-size:13px}
-  .vazio{color:var(--ink-3);font-size:14px;text-align:center;padding:26px}
-  .foot{color:var(--ink-3);font-size:11px;text-align:center;margin-top:24px}
+  .lista-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .reg{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    position:relative;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--r-sm);
+    box-shadow:var(--shadow-sm);
+    padding:14px 16px;
+    font-size:14px;
+    overflow:hidden;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .reg:hover {
+    transform: translateX(2px);
+    box-shadow: var(--shadow-md);
+  }
+  .reg::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    bottom:0;
+    width:4px;
+    background:var(--green);
+  }
+  .reg .pt{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:var(--green);
+    flex:none;
+    box-shadow: 0 0 6px var(--green-tint);
+  }
+  .reg .data{font-family:var(--num);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+  .reg .mini{
+    margin-left:auto; display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end;
+  }
+  .reg .chip{
+    font-family:var(--num);font-weight:600;font-size:11px;
+    color:var(--ink-2);background:var(--surface-2);border:1px solid var(--line);
+    border-radius:999px;padding:3px 8px;white-space:nowrap;
+  }
+  .reg .chip.quente{color:var(--red);background:var(--red-tint);border-color:#f3c7c1}
+  .reg .sit{
+    font-size:11px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+    color:var(--green);
+    background:var(--green-tint);
+    border-radius:20px;
+    padding:4px 10px;
+    flex:none;
+  }
+  @media (max-width:430px){
+    .reg .chip{font-size:10px;padding:3px 7px}
+  }
+
+  .pager{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:20px}
+  .pager button{
+    flex:1;
+    background:var(--surface);
+    border:1px solid var(--line-2);
+    color:var(--ink);
+    border-radius:var(--r-sm);
+    padding:12px;
+    font-size:14px;
+    font-weight:600;
+    box-shadow:var(--shadow-sm);
+    transition: all 0.2s ease;
+  }
+  .pager button:hover:not(:disabled){
+    background: var(--surface-2);
+    border-color: var(--brand);
+    color: var(--brand);
+  }
+  .pager button:disabled{opacity:.4;box-shadow:none;cursor:not-allowed}
+  .pager .info{font-size:13px;color:var(--ink-2);white-space:nowrap;font-family:var(--num);font-weight: 500;}
+
+  .aviso{
+    background:var(--red-tint);
+    border:1px solid #f3c7c1;
+    color:#8f2318;
+    border-radius:var(--r-sm);
+    padding:16px;
+    font-size:13px;
+    line-height: 1.5;
+  }
+  .vazio{
+    color:var(--ink-3);
+    font-size:14px;
+    text-align:center;
+    padding:40px 20px;
+    background: var(--surface);
+    border: 1px dashed var(--line-2);
+    border-radius: var(--r);
+  }
+  .foot{color:var(--ink-3);font-size:12px;text-align:center;margin-top:32px;font-weight: 500;}
 </style>
 </head>
 <body>
 
-<!-- ======================= CONFIGURAÇÃO (EDITE AQUI) ======================= -->
+<!-- ======================= CONFIGURAÇÃO ======================= -->
 <script>
-  // URL CSV da planilha PUBLICADA NA WEB (Arquivo -> Compartilhar -> Publicar na web
-  // -> aba "registros" -> formato CSV). Esta leitura NÃO passa por login do Google,
-  // por isso funciona em qualquer navegador/celular.
   const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR12JlZSF-iOSrTq4PFyt-nyTB545uwg1utze9FDA1Yt1pzZ6vAIvmaBqY_7kNzt7mrI_wDNFr3IRc4/pub?gid=0&single=true&output=csv";
-
-  // Minutos sem registro para considerar INATIVO. Use o MESMO valor do monitoramento.gs.
   const LIMITE_INATIVO_MIN = 90;
 
-  // Nome exibido do computador monitorado.
-  const MAQUINA = "PC-AUTOMACAO-01";
+  // Limiares de alerta (cor dos cartões):
+  const LIMITE_TEMP_ALERTA = 85;   // °C  -> vermelho; (LIMITE-10) -> âmbar
+  const LIMITE_PCT_ALERTA  = 90;   // %   -> vermelho (CPU/RAM/Disco); 70 -> âmbar
+  const LIMITE_PING_ALERTA = 200;  // ms  -> vermelho; 80 -> âmbar
 
-  // A cada quantos segundos a tela de status se atualiza sozinha.
+  const MAQUINA = "PC-AUTOMACAO-01";
   const REFRESH_SEG = 60;
 </script>
 <!-- ======================================================================== -->
@@ -159,31 +434,92 @@
 <header class="topbar">
   <div class="tb-brand">
     <svg class="mark" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-      <rect width="64" height="64" rx="13" fill="#0a3a40"/>
-      <g stroke="#7fd4d0" stroke-width="3"><circle cx="24" cy="32" r="12"/><circle cx="44" cy="32" r="8"/></g>
+      <rect width="64" height="64" rx="14" fill="#0a3a40"/>
+      <g stroke="#7fd4d0" stroke-width="3.5" stroke-linecap="round"><circle cx="24" cy="32" r="11"/><circle cx="44" cy="32" r="7"/></g>
     </svg>
     <div class="tb-title">Monitor do Bot<small>Belt Correias · Automação</small></div>
   </div>
   <div class="spacer"></div>
   <button id="tabStatus" class="nav-btn ativo" onclick="irPara('status')">Status</button>
   <button id="tabHist" class="nav-btn" onclick="irPara('hist')">Histórico</button>
-  <button id="btnInstalar" class="nav-btn nav-inst hide" onclick="instalarApp()">⬇ Instalar</button>
+  <button id="btnInstalar" class="nav-btn nav-inst hide" onclick="instalarApp()">⬇ Baixar App</button>
 </header>
 
 <main>
   <!-- ======================= TELA: STATUS ======================= -->
   <section id="telaStatus">
     <div class="hero" id="hero">
-      <span class="selo">Situação do computador</span>
-      <svg class="bot" id="botImg" viewBox="0 0 120 120" aria-hidden="true"></svg>
+      <div class="selo-wrapper">
+        <span class="selo"><span class="selo-dot"></span><span id="seloTexto">Situação do computador</span></span>
+      </div>
+
+      <div class="bot-container">
+        <svg class="bot" id="botImg" viewBox="0 0 120 120" aria-hidden="true"></svg>
+      </div>
+
       <div class="estado wait" id="estado">Carregando…</div>
       <div class="maqnome" id="maqnome">—</div>
 
-      <div class="linha"><span class="k">Último registro</span><span class="v" id="ultimo">—</span></div>
-      <div class="linha"><span class="k">Há quanto tempo</span><span class="v" id="hatempo">—</span></div>
-      <div class="linha"><span class="k">Total de registros</span><span class="v" id="total">—</span></div>
+      <div class="grid-dados">
+        <div class="linha"><span class="k">Último registro</span><span class="v" id="ultimo">—</span></div>
+        <div class="linha"><span class="k">Há quanto tempo</span><span class="v" id="hatempo">—</span></div>
+        <div class="linha"><span class="k">Total de registros</span><span class="v" id="total">—</span></div>
+      </div>
 
-      <button class="btn" onclick="atualizar()">↻ Atualizar agora</button>
+      <div class="metrics-title">Métricas do computador</div>
+      <div class="metrics">
+        <div class="mcard">
+          <div class="mtop">
+            <span class="micon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="6" height="6"/><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/></svg></span>
+            <span class="mlabel">CPU</span>
+          </div>
+          <div class="mval" id="vCpu">—</div>
+          <div class="mbar"><i id="bCpu"></i></div>
+        </div>
+
+        <div class="mcard">
+          <div class="mtop">
+            <span class="micon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M7 7V5M12 7V5M17 7V5M7 20v-3M12 20v-3M17 20v-3"/></svg></span>
+            <span class="mlabel">Memória RAM</span>
+          </div>
+          <div class="mval" id="vRam">—</div>
+          <div class="mbar"><i id="bRam"></i></div>
+        </div>
+
+        <div class="mcard">
+          <div class="mtop">
+            <span class="micon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v4M16.5 7.5l-2 2"/></svg></span>
+            <span class="mlabel">Disco (C:)</span>
+          </div>
+          <div class="mval" id="vDisco">—</div>
+          <div class="mbar"><i id="bDisco"></i></div>
+        </div>
+
+        <div class="mcard">
+          <div class="mtop">
+            <span class="micon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V5a2 2 0 0 0-4 0v9.76a4 4 0 1 0 4 0z"/></svg></span>
+            <span class="mlabel">Temperatura</span>
+          </div>
+          <div class="mval" id="vTemp">—</div>
+          <div class="mbar"><i id="bTemp"></i></div>
+        </div>
+
+        <div class="mcard full">
+          <div class="mtop">
+            <span class="micon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5a9 9 0 0 1 14 0M8.5 16a4.5 4.5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="0.6" fill="currentColor"/></svg></span>
+            <span class="mlabel">Ping (internet)</span>
+          </div>
+          <div class="mrow">
+            <div class="mval" id="vPing">—</div>
+            <div class="mbar"><i id="bPing"></i></div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn" onclick="atualizar()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        Atualizar agora
+      </button>
       <div class="atualizado" id="atualizado"></div>
     </div>
     <div id="erroStatus"></div>
@@ -195,7 +531,7 @@
       <h1>Histórico de registros</h1>
       <span class="cont" id="contador"></span>
     </div>
-    <div id="listaHist"><div class="vazio">Carregando…</div></div>
+    <div id="listaHist" class="lista-container"><div class="vazio">Carregando…</div></div>
     <div class="pager">
       <button id="btnAnt" onclick="mudarPagina(-1)">← Mais recentes</button>
       <span class="info" id="pagInfo">—</span>
@@ -203,13 +539,13 @@
     </div>
   </section>
 
-  <div class="foot">Painel de consulta · o alerta de queda chega por e-mail</div>
+  <div class="foot">Painel de consulta · O alerta de queda e de temperatura chega por e-mail</div>
 </main>
 
 <script>
 const $ = (s)=>document.querySelector(s);
 const TAM_PAGINA = 50;
-let DADOS = [];        // {registro, situacao, date} em ordem da planilha (antigo -> recente)
+let DADOS = [];
 let paginaHist = 0, totalPaginas = 1;
 
 function esc(t){ return String(t==null?'':t).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
@@ -221,6 +557,15 @@ function parseBR(s){
   const d = new Date(s);
   return isNaN(d) ? null : d;
 }
+function parseNum(s){
+  if(s==null) return null;
+  const m = String(s).replace(',','.').match(/-?\d+(?:\.\d+)?/);
+  return m ? parseFloat(m[0]) : null;
+}
+function fmtPct(v){ return Math.round(v) + ' %'; }
+function fmtTemp(v){ return v.toFixed(1).replace('.',',') + ' °C'; }
+function fmtPing(v){ return Math.round(v) + ' ms'; }
+
 function splitCSV(linha){
   const out=[]; let cur='', dentro=false;
   for(let i=0;i<linha.length;i++){
@@ -237,19 +582,51 @@ function parseCSV(txt){
   const out=[];
   for(const linha of linhas){
     const cols = splitCSV(linha);
-    const a=(cols[0]||'').trim(), b=(cols[1]||'').trim();
+    const a=(cols[0]||'').trim();
     if(!a) continue;
     if(a.toLowerCase()==='registro') continue; // cabeçalho
-    out.push({ registro:a, situacao:b||'Ativo', date:parseBR(a) });
+    out.push({
+      registro:a,
+      situacao:(cols[1]||'').trim()||'Ativo',
+      cpu:parseNum(cols[2]),
+      ram:parseNum(cols[3]),
+      disco:parseNum(cols[4]),
+      temp:parseNum(cols[5]),
+      ping:parseNum(cols[6]),
+      date:parseBR(a)
+    });
   }
   return out;
 }
 async function buscarDados(){
-  const url = CSV_URL + (CSV_URL.indexOf('?')>=0?'&':'?') + '_=' + Date.now(); // evita cache do navegador
+  const url = CSV_URL + (CSV_URL.indexOf('?')>=0?'&':'?') + '_=' + Date.now();
   const r = await fetch(url, {redirect:'follow', cache:'no-store'});
   const txt = await r.text();
   if(/^\s*</.test(txt)) throw new Error('a planilha não está publicada como CSV');
   return parseCSV(txt);
+}
+
+/* ---------- cores por faixa ---------- */
+function nivelPct(v){ return v>=LIMITE_PCT_ALERTA ? 'crit' : (v>=70 ? 'warn' : ''); }
+function nivelTemp(v){ return v>=LIMITE_TEMP_ALERTA ? 'crit' : (v>=LIMITE_TEMP_ALERTA-10 ? 'warn' : ''); }
+function nivelPing(v){ return v>=LIMITE_PING_ALERTA ? 'crit' : (v>=80 ? 'warn' : ''); }
+
+/* ---------- preenche um cartão (valor + barra) ---------- */
+function setCard(valId, barId, valor, texto, largura, nivel, unidade){
+  const vEl = $(valId), bEl = $(barId);
+  vEl.classList.remove('warn','crit');
+  if(bEl) bEl.classList.remove('warn','crit');
+  if(valor==null){
+    vEl.innerHTML = '—';
+    if(bEl) bEl.style.width = '0%';
+    return;
+  }
+  vEl.innerHTML = texto + (unidade ? ' <small>'+unidade+'</small>' : '');
+  if(nivel) vEl.classList.add(nivel);
+  if(bEl){
+    bEl.style.width = Math.max(0, Math.min(100, largura)) + '%';
+    if(nivel) bEl.classList.add(nivel);
+  }
 }
 
 /* ---------- desenho do bot ---------- */
@@ -284,9 +661,9 @@ function desenharBot(estado){
     <rect x="66" y="96" width="14" height="10" rx="3" fill="${cor}"/>`;
 }
 
-/* ---------- atualizar (busca + redesenha a tela atual) ---------- */
+/* ---------- atualizar ---------- */
 async function atualizar(){
-  $('#atualizado').textContent = 'atualizando…';
+  $('#atualizado').textContent = 'Atualizando dados…';
   try{
     DADOS = await buscarDados();
     $('#erroStatus').innerHTML = '';
@@ -298,7 +675,7 @@ async function atualizar(){
     $('#estado').className = 'estado wait';
     $('#estado').textContent = 'Sem conexão';
     $('#atualizado').textContent = '';
-    $('#erroStatus').innerHTML = '<div class="aviso" style="margin-top:12px"><b>Não consegui ler a planilha.</b><br>'
+    $('#erroStatus').innerHTML = '<div class="aviso" style="margin-top:16px"><b>Não foi possível ler a planilha.</b><br>'
       + 'Confirme que ela está publicada na web em formato CSV. ('+esc(e.message)+')</div>';
   }
 }
@@ -311,13 +688,30 @@ function renderStatus(){
   desenharBot(ativo ? 'ok' : 'off');
   $('#hero').className = 'hero ' + (ativo ? 'ok' : 'off');
   $('#estado').className = 'estado ' + (ativo ? 'ok' : 'off');
-  $('#estado').textContent = ativo ? 'ATIVO' : 'INATIVO';
+  $('#estado').textContent = ativo ? 'ONLINE' : 'OFFLINE';
+  $('#seloTexto').textContent = ativo ? 'Computador Operacional' : 'Computador Inativo';
   $('#maqnome').textContent = MAQUINA;
-  $('#ultimo').textContent = ult ? ult.registro : 'nenhum registro';
-  $('#hatempo').textContent = (min==null) ? '—' : (min<=1 ? 'agora mesmo' : ('há ~'+min+' min'));
+  $('#ultimo').textContent = ult ? ult.registro : 'Nenhum registro';
+  $('#hatempo').textContent = (min==null) ? '—' : (min<=1 ? 'Agora mesmo' : ('Há ~'+min+' min'));
   $('#total').textContent = DADOS.length;
+
+  // cartões de métricas (usam o último registro)
+  const cpu   = ult ? ult.cpu   : null;
+  const ram   = ult ? ult.ram   : null;
+  const disco = ult ? ult.disco : null;
+  const temp  = ult ? ult.temp  : null;
+  const ping  = ult ? ult.ping  : null;
+
+  setCard('#vCpu',  '#bCpu',  cpu,   cpu!=null?fmtPct(cpu):null,     cpu,   cpu!=null?nivelPct(cpu):'');
+  setCard('#vRam',  '#bRam',  ram,   ram!=null?fmtPct(ram):null,     ram,   ram!=null?nivelPct(ram):'');
+  setCard('#vDisco','#bDisco',disco, disco!=null?fmtPct(disco):null, disco, disco!=null?nivelPct(disco):'');
+  setCard('#vTemp', '#bTemp', temp,  temp!=null?fmtTemp(temp):null,  temp,  temp!=null?nivelTemp(temp):'');
+  // ping: barra proporcional ao limite de alerta (200ms = cheia)
+  setCard('#vPing', '#bPing', ping,  ping!=null?fmtPing(ping):null,
+          ping!=null?(ping/LIMITE_PING_ALERTA*100):0, ping!=null?nivelPing(ping):'');
+
   const agora = new Date().toLocaleString('pt-BR');
-  $('#atualizado').textContent = 'atualizado ' + agora + ' · inativo após ' + LIMITE_INATIVO_MIN + ' min sem registro';
+  $('#atualizado').textContent = 'Atualizado às ' + agora + ' · Inativo se > ' + LIMITE_INATIVO_MIN + ' min';
 }
 
 function renderHist(){
@@ -327,19 +721,27 @@ function renderHist(){
   if(paginaHist < 0) paginaHist = 0;
 
   $('#contador').textContent = total + ' registros';
-  const recentes = DADOS.slice().reverse(); // recente -> antigo
+  const recentes = DADOS.slice().reverse();
   const ini = paginaHist * TAM_PAGINA;
   const pagina = recentes.slice(ini, ini + TAM_PAGINA);
 
   if(!pagina.length){
-    $('#listaHist').innerHTML = '<div class="vazio">Nenhum registro ainda.</div>';
+    $('#listaHist').innerHTML = '<div class="vazio">Nenhum registro encontrado.</div>';
   }else{
-    $('#listaHist').innerHTML = pagina.map(x=>
-      `<div class="reg"><span class="pt"></span>`+
-      `<span class="data">${esc(x.registro)}</span>`+
-      `<span class="sit">${esc(x.situacao||'Ativo')}</span></div>`).join('');
+    $('#listaHist').innerHTML = pagina.map(x=>{
+      const chips = [];
+      if(x.cpu   != null) chips.push(`<span class="chip">CPU ${fmtPct(x.cpu)}</span>`);
+      if(x.ram   != null) chips.push(`<span class="chip">RAM ${fmtPct(x.ram)}</span>`);
+      if(x.disco != null) chips.push(`<span class="chip">Disco ${fmtPct(x.disco)}</span>`);
+      if(x.temp  != null) chips.push(`<span class="chip${x.temp>=LIMITE_TEMP_ALERTA?' quente':''}">${fmtTemp(x.temp)}</span>`);
+      if(x.ping  != null) chips.push(`<span class="chip">${fmtPing(x.ping)}</span>`);
+      return `<div class="reg"><span class="pt"></span>`+
+        `<span class="data">${esc(x.registro)}</span>`+
+        `<span class="mini">${chips.join('')}<span class="sit">${esc(x.situacao||'Ativo')}</span></span>`+
+        `</div>`;
+    }).join('');
   }
-  $('#pagInfo').textContent = 'Pág. ' + (paginaHist+1) + ' / ' + totalPaginas;
+  $('#pagInfo').textContent = 'Pág. ' + (paginaHist+1) + ' de ' + totalPaginas;
   $('#btnAnt').disabled = paginaHist<=0;
   $('#btnProx').disabled = paginaHist>=totalPaginas-1;
 }
@@ -371,27 +773,24 @@ document.addEventListener('visibilitychange', ()=>{
   if(!document.hidden && !$('#telaStatus').classList.contains('hide')) atualizar();
 });
 
-/* ---------- PWA: registra o service worker (torna o app instalável/offline) ---------- */
+/* ---------- PWA ---------- */
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
     navigator.serviceWorker.register('./sw.js').catch(()=>{});
   });
 }
 
-/* ---------- botão "Instalar aplicativo" ---------- */
 let deferredPrompt = null;
 const btnInstalar = $('#btnInstalar');
 const iOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 function ehStandalone(){
   return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 }
-// Chrome/Android: guarda o evento e mostra o botão quando o app pode ser instalado.
 window.addEventListener('beforeinstallprompt', (e)=>{
   e.preventDefault();
   deferredPrompt = e;
   if(!ehStandalone()) btnInstalar.classList.remove('hide');
 });
-// Depois de instalado, o botão some.
 window.addEventListener('appinstalled', ()=>{
   deferredPrompt = null;
   btnInstalar.classList.add('hide');
@@ -405,12 +804,11 @@ async function instalarApp(){
     return;
   }
   if(iOS){
-    alert('Para instalar no iPhone: toque no botão Compartilhar (quadrado com seta) e escolha "Adicionar à Tela de Início".');
+    alert('Para baixar no iPhone: toque no botão Compartilhar (quadrado com seta) e escolha "Adicionar à Tela de Início".');
   }else{
-    alert('Para instalar: abra o menu do navegador (⋮) e toque em "Instalar aplicativo".\n\nSe não aparecer, aguarde alguns segundos na página e recarregue.');
+    alert('Para baixar: abra o menu do navegador (⋮) e toque em "Instalar aplicativo".\n\nSe não aparecer, aguarde alguns segundos na página e recarregue.');
   }
 }
-// iPhone não dispara o evento automático: mostramos o botão com instruções.
 if(iOS && !ehStandalone()) btnInstalar.classList.remove('hide');
 </script>
 </body>
