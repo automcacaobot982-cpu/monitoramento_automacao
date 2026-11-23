@@ -721,6 +721,7 @@ const $ = (s)=>document.querySelector(s);
 const TAM_PAGINA = 50;
 let DADOS = [];
 let NOTIFS = [];
+let NOTIF_VIS = [];      // só as não resolvidas (as que aparecem em cartão)
 let NOTIF_TOTAL = 0;
 let notifAberta = null;
 let paginaHist = 0, totalPaginas = 1;
@@ -1096,23 +1097,22 @@ function chaveNotif(n){ return n.data+'|'+n.processo+'|'+n.mensagem; }
 
 function renderNotif(){
   const lista = $('#listaNotif'), cont = $('#notifCont');
-  if(!NOTIFS.length){
-    lista.innerHTML = '<div class="vazio">Nenhuma notificação ainda.</div>';
+  NOTIF_VIS = NOTIFS.filter(n=>!n.resolvido);   // resolvidos ficam ocultos
+  if(!NOTIF_VIS.length){
+    lista.innerHTML = '<div class="vazio">Nenhuma notificação em aberto.</div>';
     cont.textContent = '';
     return;
   }
-  const top20 = NOTIFS.slice(0, 20);
-  const nTot = NOTIF_TOTAL || NOTIFS.length;
-  cont.textContent = nTot + (nTot===1?' registro':' registros');
+  const top20 = NOTIF_VIS.slice(0, 20);
+  cont.textContent = NOTIF_VIS.length + ' em aberto';
   lista.innerHTML = top20.map((n,i)=>
-    `<div class="ncard${n.resolvido?' resolvido':''}">`+
+    `<div class="ncard">`+
       `<button class="ncard-i" onclick="abrirDetalhe(${i})" aria-label="Ver detalhes" title="Ver detalhes">i</button>`+
       `<div class="ncard-top">`+
         `<span class="ncard-proc">${esc(n.processo||'—')}</span>`+
         `<span class="ncard-data">${esc(n.data)}</span>`+
       `</div>`+
       (n.mensagem ? `<div class="ncard-msg">${esc(n.mensagem)}</div>` : '')+
-      (n.resolvido ? `<div class="ncard-ok">✓ Resolvido em ${esc(n.resolvido)}</div>` : '')+
     `</div>`).join('');
 }
 
@@ -1186,7 +1186,7 @@ function fmtAgora(){
   return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes());
 }
 function abrirDetalhe(i){
-  const n = NOTIFS[i];
+  const n = NOTIF_VIS[i];
   if(!n) return;
   notifAberta = n;
   $('#mdProc').textContent = n.processo || 'Notificação';
