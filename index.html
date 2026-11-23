@@ -477,7 +477,36 @@
   .ncard-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
   .ncard-proc{font-weight:700;font-size:14px;color:var(--ink)}
   .ncard-data{font-family:var(--num);font-size:11px;color:var(--ink-3);white-space:nowrap}
-  .ncard-msg{font-size:13px;color:var(--ink-2);margin-top:4px;line-height:1.45}
+  .ncard-msg{font-size:13px;color:var(--ink-2);margin-top:4px;line-height:1.45;white-space:pre-line}
+  .ncard{position:relative}
+  .ncard-top{padding-right:26px}
+  .ncard-i{
+    position:absolute;top:10px;right:10px;width:22px;height:22px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    font-family:var(--num);font-style:italic;font-weight:700;font-size:13px;
+    color:var(--brand);background:var(--brand-tint);border:1px solid transparent;transition:background .15s ease}
+  .ncard-i:hover{background:#d4e9e9}
+  .ncard.resolvido{opacity:.72;border-left-color:var(--green)}
+  .ncard-ok{margin-top:6px;font-size:12px;font-weight:700;color:var(--green)}
+
+  /* pop-up de detalhes da notificação */
+  .modal{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;padding:18px;
+    background:rgba(0,0,0,.55);opacity:0;visibility:hidden;transition:opacity .2s ease}
+  .modal.aberto{opacity:1;visibility:visible}
+  .modal-card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow-lg);
+    width:100%;max-width:440px;max-height:85vh;overflow-y:auto;padding:22px 20px 20px;position:relative}
+  .modal-x{position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:8px;cursor:pointer;
+    background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);font-size:14px;font-weight:700}
+  .modal-x:hover{background:#eef2f3}
+  .modal-proc{font-family:var(--num);font-weight:700;font-size:17px;color:var(--ink);padding-right:36px;margin-bottom:4px;line-height:1.25}
+  .modal-data{font-size:12px;color:var(--ink-3);font-family:var(--num);margin-bottom:12px}
+  .modal-msg{font-size:14px;color:var(--ink);line-height:1.5;white-space:pre-line;
+    background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px}
+  .modal-resolv{font-size:13px;color:var(--green);font-weight:700;margin-top:12px}
+  .btn-resolvido{display:block;width:100%;margin-top:16px;padding:13px;border-radius:var(--r-sm);
+    background:var(--green);color:#fff;font-weight:700;font-size:15px;cursor:pointer;border:none;transition:background .15s ease}
+  .btn-resolvido:hover{background:#15803d}
+  .btn-resolvido:disabled{opacity:.6;cursor:default}
 
   /* balão de notificação (canto) */
   .toast-wrap{
@@ -503,6 +532,10 @@
   // Base de NOTIFICAÇÕES (2ª planilha publicada como CSV):
   //   A = Data de notificação (DD/MM/AAAA HH:MM)  |  B = Processo (título)  |  C = Mensagem
   const CSV_NOTIF_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQlwVO2EPAYnOxFDRAIs2pAF6QMEjSusL9OIsGCBkKuislL8SD6D9IzvFkLtrIFD4u8CPVP58UdaIdT/pub?gid=0&single=true&output=csv";
+
+  // Para marcar "Resolvido" (grava a coluna D): URL /exec do notificacoes.gs + o MESMO token dele.
+  const NOTIF_EXEC_URL = "https://script.google.com/macros/s/AKfycbygnC0D9-O5npm3uQpotTVSEcCW0rhre6a3cZic9LVKld5etzspfWlAtvxbamRzwA2lrg/exec";
+  const NOTIF_TOKEN = "TROQUE-ESTE-SEGREDO-NOTIF";
 
   const LIMITE_INATIVO_MIN = 90;
 
@@ -669,6 +702,18 @@
   <div class="foot">Painel de consulta · O alerta de queda e de temperatura chega por e-mail</div>
 </main>
 
+<!-- pop-up de detalhes da notificação -->
+<div id="notifModal" class="modal" onclick="if(event.target===this) fecharDetalhe()">
+  <div class="modal-card">
+    <button class="modal-x" onclick="fecharDetalhe()" aria-label="Fechar">✕</button>
+    <div class="modal-proc" id="mdProc">—</div>
+    <div class="modal-data" id="mdData"></div>
+    <div class="modal-msg" id="mdMsg"></div>
+    <div class="modal-resolv hide" id="mdResolv"></div>
+    <button class="btn-resolvido" id="btnResolvido" onclick="marcarResolvido()">Resolvido</button>
+  </div>
+</div>
+
 <div id="toastWrap" class="toast-wrap"></div>
 
 <script>
@@ -676,6 +721,8 @@ const $ = (s)=>document.querySelector(s);
 const TAM_PAGINA = 50;
 let DADOS = [];
 let NOTIFS = [];
+let NOTIF_TOTAL = 0;
+let notifAberta = null;
 let paginaHist = 0, totalPaginas = 1;
 
 /* estado da tela Análise */
@@ -748,26 +795,52 @@ async function buscarDados(){
 }
 
 /* ---------- leitura da base de NOTIFICAÇÕES ---------- */
+// parser de CSV que respeita campos entre aspas COM vírgulas E quebras de linha
+// (uma célula com várias linhas continua sendo UM registro)
+function parseCSVRegistros(txt){
+  txt = txt.replace(/\r/g,'');
+  const recs=[]; let campo='', linha=[], dentro=false;
+  for(let i=0;i<txt.length;i++){
+    const c=txt[i];
+    if(dentro){
+      if(c==='"'){ if(txt[i+1]==='"'){ campo+='"'; i++; } else dentro=false; }
+      else campo+=c;
+    }else{
+      if(c==='"') dentro=true;
+      else if(c===','){ linha.push(campo); campo=''; }
+      else if(c==='\n'){ linha.push(campo); recs.push(linha); linha=[]; campo=''; }
+      else campo+=c;
+    }
+  }
+  if(campo!=='' || linha.length){ linha.push(campo); recs.push(linha); }
+  return recs;
+}
 function parseNotifCSV(txt){
-  const linhas = txt.replace(/\r/g,'').split('\n').filter(l=>l.trim().length);
   const out=[];
-  for(const linha of linhas){
-    const cols = splitCSV(linha);
+  for(const cols of parseCSVRegistros(txt)){
     const a=(cols[0]||'').trim();
     if(!a) continue;
     if(a.toLowerCase().startsWith('data')) continue; // cabeçalho "Data de notificação"
-    out.push({ data:a, processo:(cols[1]||'').trim(), mensagem:(cols[2]||'').trim(), date:parseBR(a) });
+    out.push({ data:a, processo:(cols[1]||'').trim(), mensagem:(cols[2]||'').trim(), resolvido:(cols[3]||'').trim(), date:parseBR(a) });
   }
   // mais recente primeiro (quem tem data válida); sem data vai para o fim
   out.sort((x,y)=>(y.date?y.date.getTime():0)-(x.date?x.date.getTime():0));
   return out;
 }
 async function buscarNotificacoes(){
-  const url = CSV_NOTIF_URL + (CSV_NOTIF_URL.indexOf('?')>=0?'&':'?') + '_=' + Date.now();
+  // lê do Apps Script (planilha privada; não precisa mais de "publicar na web")
+  const url = NOTIF_EXEC_URL + '?token=' + encodeURIComponent(NOTIF_TOKEN) + '&_=' + Date.now();
   const r = await fetch(url, {redirect:'follow', cache:'no-store'});
-  const txt = await r.text();
-  if(/^\s*</.test(txt)) throw new Error('base de notificações não publicada como CSV');
-  return parseNotifCSV(txt);
+  const data = await r.json();
+  if(!data || !data.ok) throw new Error((data && data.erro) || 'falha ao ler notificações');
+  NOTIF_TOTAL = data.total || (data.notificacoes ? data.notificacoes.length : 0);
+  return (data.notificacoes || []).map(x=>({
+    data: x.data || '',
+    processo: x.processo || '',
+    mensagem: x.mensagem || '',
+    resolvido: x.resolvido || '',
+    date: parseBR(x.data || '')
+  })).sort((a,b)=>(b.date?b.date.getTime():0)-(a.date?a.date.getTime():0));
 }
 
 /* ---------- cores por faixa ---------- */
@@ -1029,14 +1102,17 @@ function renderNotif(){
     return;
   }
   const top20 = NOTIFS.slice(0, 20);
-  cont.textContent = NOTIFS.length + (NOTIFS.length===1?' registro':' registros');
-  lista.innerHTML = top20.map(n=>
-    `<div class="ncard">`+
+  const nTot = NOTIF_TOTAL || NOTIFS.length;
+  cont.textContent = nTot + (nTot===1?' registro':' registros');
+  lista.innerHTML = top20.map((n,i)=>
+    `<div class="ncard${n.resolvido?' resolvido':''}">`+
+      `<button class="ncard-i" onclick="abrirDetalhe(${i})" aria-label="Ver detalhes" title="Ver detalhes">i</button>`+
       `<div class="ncard-top">`+
         `<span class="ncard-proc">${esc(n.processo||'—')}</span>`+
         `<span class="ncard-data">${esc(n.data)}</span>`+
       `</div>`+
       (n.mensagem ? `<div class="ncard-msg">${esc(n.mensagem)}</div>` : '')+
+      (n.resolvido ? `<div class="ncard-ok">✓ Resolvido em ${esc(n.resolvido)}</div>` : '')+
     `</div>`).join('');
 }
 
@@ -1104,6 +1180,64 @@ function pedirAvisos(){
   }catch(_){ atualizarBotaoAvisos(); }
 }
 
+/* ---------- pop-up de detalhes + "Resolvido" ---------- */
+function fmtAgora(){
+  const d=new Date(), p=n=>String(n).padStart(2,'0');
+  return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
+function abrirDetalhe(i){
+  const n = NOTIFS[i];
+  if(!n) return;
+  notifAberta = n;
+  $('#mdProc').textContent = n.processo || 'Notificação';
+  $('#mdData').textContent = n.data || '';
+  $('#mdMsg').textContent  = n.mensagem || '(sem mensagem)';
+  const resolv = $('#mdResolv'), btn = $('#btnResolvido');
+  if(n.resolvido){
+    resolv.textContent = '✓ Resolvido em ' + n.resolvido;
+    resolv.classList.remove('hide');
+    btn.classList.add('hide');
+  }else{
+    resolv.classList.add('hide');
+    btn.classList.remove('hide');
+    btn.disabled = false;
+    btn.textContent = 'Resolvido';
+  }
+  $('#notifModal').classList.add('aberto');
+}
+function fecharDetalhe(){
+  $('#notifModal').classList.remove('aberto');
+  notifAberta = null;
+}
+async function marcarResolvido(){
+  if(!notifAberta) return;
+  const n = notifAberta, btn = $('#btnResolvido');
+  btn.disabled = true; btn.textContent = 'Enviando…';
+  const url = NOTIF_EXEC_URL
+    + '?token=' + encodeURIComponent(NOTIF_TOKEN)
+    + '&acao=resolver'
+    + '&data=' + encodeURIComponent(n.data || '')
+    + '&processo=' + encodeURIComponent(n.processo || '')
+    + '&_=' + Date.now();
+  let ok = false, quando = fmtAgora();
+  try{
+    const r = await fetch(url, {redirect:'follow', cache:'no-store'});
+    const resp = await r.json();
+    ok = !!(resp && resp.ok);
+    if(resp && resp.resolvido_em) quando = resp.resolvido_em;
+  }catch(_){ ok = false; }
+  if(ok){
+    n.resolvido = quando;               // reflete na hora
+    renderNotif();
+    fecharDetalhe();
+    setTimeout(atualizar, 1500);        // reconfirma relendo a base
+  }else{
+    btn.disabled = false;
+    btn.textContent = 'Resolvido';
+    mostrarBalao('Não foi possível marcar', 'Verifique a conexão e o token, e tente de novo.');
+  }
+}
+
 /* ---------- menu (hambúrguer no celular) ---------- */
 function abrirMenu(){
   document.body.classList.add('menu-aberto');
@@ -1157,7 +1291,7 @@ document.querySelectorAll('#chipMetricas .chip-m').forEach(b=>{
 });
 
 /* fecha o menu com a tecla Esc */
-document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') fecharMenu(); });
+document.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ fecharMenu(); fecharDetalhe(); } });
 
 /* ---------- PWA ---------- */
 if('serviceWorker' in navigator){
